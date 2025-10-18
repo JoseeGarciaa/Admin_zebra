@@ -31,10 +31,11 @@ export type User = {
   id: number
   nombre: string
   correo: string
-  telefono: string
+  telefono: string | null
   rol: "admin" | "soporte"
   activo: boolean
-  fecha_creacion: string
+  ultimo_ingreso: string | null
+  fecha_creacion: string | null
 }
 
 export const columns: ColumnDef<User>[] = [
@@ -63,6 +64,7 @@ export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "telefono",
     header: "Teléfono",
+    cell: ({ row }) => row.getValue("telefono") ?? "—",
   },
   {
     accessorKey: "rol",
@@ -84,7 +86,13 @@ export const columns: ColumnDef<User>[] = [
     accessorKey: "fecha_creacion",
     header: "Fecha Creación",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("fecha_creacion"))
+      const value = row.getValue("fecha_creacion") as string | null
+
+      if (!value) {
+        return <div>—</div>
+      }
+
+      const date = new Date(value)
       return <div>{date.toLocaleDateString("es-ES")}</div>
     },
   },
@@ -119,9 +127,10 @@ export const columns: ColumnDef<User>[] = [
 
 interface UsersTableProps {
   data: User[]
+  loading?: boolean
 }
 
-export function UsersTable({ data }: UsersTableProps) {
+export function UsersTable({ data, loading }: UsersTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
@@ -166,7 +175,13 @@ export function UsersTable({ data }: UsersTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Cargando usuarios...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (

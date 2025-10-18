@@ -5,37 +5,52 @@ import { StatsCard } from "@/components/stats-card"
 import { ActivityList } from "@/components/activity-list"
 import { AccessChart } from "@/components/access-chart"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { Users, DoorOpen, AlertTriangle, UserCheck } from "lucide-react"
+import { getDashboardMetrics } from "@/lib/data"
+import { Users, UserCheck, Building2, Building } from "lucide-react"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  let metrics: Awaited<ReturnType<typeof getDashboardMetrics>>
+
+  try {
+    metrics = await getDashboardMetrics()
+  } catch (error) {
+    console.error("No se pudieron cargar las métricas del dashboard", error)
+    metrics = {
+      totalUsers: 0,
+      activeUsers: 0,
+      totalTenants: 0,
+      activeTenants: 0,
+    }
+  }
+
   const stats = [
     {
-      title: "Accesos Hoy",
-      value: "1,234",
-      change: "+12.5% desde ayer",
-      trend: "up" as const,
+      title: "Usuarios totales",
+      value: metrics.totalUsers.toString(),
+      change: `Activos: ${metrics.activeUsers}`,
+      trend: "neutral" as const,
       icon: Users,
     },
     {
-      title: "Personal Activo",
-      value: "342",
-      change: "+3.2% desde ayer",
-      trend: "up" as const,
+      title: "Usuarios activos",
+      value: metrics.activeUsers.toString(),
+      change: `Inactivos: ${Math.max(metrics.totalUsers - metrics.activeUsers, 0)}`,
+      trend: "neutral" as const,
       icon: UserCheck,
     },
     {
-      title: "Puertas Monitoreadas",
-      value: "24",
-      change: "0% desde ayer",
+      title: "Tenants totales",
+      value: metrics.totalTenants.toString(),
+      change: `Activos: ${metrics.activeTenants}`,
       trend: "neutral" as const,
-      icon: DoorOpen,
+      icon: Building2,
     },
     {
-      title: "Accesos Denegados",
-      value: "12",
-      change: "-8.3% desde ayer",
-      trend: "down" as const,
-      icon: AlertTriangle,
+      title: "Tenants activos",
+      value: metrics.activeTenants.toString(),
+      change: `Inactivos: ${Math.max(metrics.totalTenants - metrics.activeTenants, 0)}`,
+      trend: "neutral" as const,
+      icon: Building,
     },
   ]
 

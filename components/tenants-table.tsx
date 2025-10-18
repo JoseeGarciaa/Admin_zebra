@@ -30,12 +30,13 @@ import { Badge } from "@/components/ui/badge"
 export type Tenant = {
   id: number
   nombre: string
-  nit: string
+  nit: string | null
   email_contacto: string
-  telefono_contacto: string
-  direccion: string
-  estado: "activo" | "inactivo" | "suspendido"
-  fecha_creacion: string
+  telefono_contacto: string | null
+  direccion: string | null
+  estado: boolean
+  ultimo_ingreso: string | null
+  fecha_creacion: string | null
 }
 
 export const columns: ColumnDef<Tenant>[] = [
@@ -59,6 +60,7 @@ export const columns: ColumnDef<Tenant>[] = [
   {
     accessorKey: "nit",
     header: "NIT",
+    cell: ({ row }) => row.getValue("nit") ?? "—",
   },
   {
     accessorKey: "email_contacto",
@@ -68,21 +70,27 @@ export const columns: ColumnDef<Tenant>[] = [
   {
     accessorKey: "telefono_contacto",
     header: "Teléfono",
+    cell: ({ row }) => row.getValue("telefono_contacto") ?? "—",
   },
   {
     accessorKey: "estado",
     header: "Estado",
     cell: ({ row }) => {
-      const estado = row.getValue("estado") as string
-      const variant = estado === "activo" ? "default" : estado === "suspendido" ? "secondary" : "destructive"
-      return <Badge variant={variant}>{estado}</Badge>
+      const estado = row.getValue("estado") as boolean
+      return <Badge variant={estado ? "default" : "destructive"}>{estado ? "Activo" : "Inactivo"}</Badge>
     },
   },
   {
     accessorKey: "fecha_creacion",
     header: "Fecha Creación",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("fecha_creacion"))
+      const value = row.getValue("fecha_creacion") as string | null
+
+      if (!value) {
+        return <div>—</div>
+      }
+
+      const date = new Date(value)
       return <div>{date.toLocaleDateString("es-ES")}</div>
     },
   },
@@ -117,9 +125,10 @@ export const columns: ColumnDef<Tenant>[] = [
 
 interface TenantsTableProps {
   data: Tenant[]
+  loading?: boolean
 }
 
-export function TenantsTable({ data }: TenantsTableProps) {
+export function TenantsTable({ data, loading }: TenantsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
@@ -164,7 +173,13 @@ export function TenantsTable({ data }: TenantsTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Cargando tenants...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
                   {row.getVisibleCells().map((cell) => (

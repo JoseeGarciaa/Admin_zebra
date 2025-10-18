@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { UsersTable, type User } from "@/components/users-table"
@@ -14,46 +14,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus } from "lucide-react"
 
-const mockUsers: User[] = [
-  {
-    id: 1,
-    nombre: "Admin Principal",
-    correo: "admin@platform.com",
-    telefono: "+57 300 123 4567",
-    rol: "admin",
-    activo: true,
-    fecha_creacion: "2025-01-15T10:00:00Z",
-  },
-  {
-    id: 2,
-    nombre: "Soporte Técnico",
-    correo: "soporte@platform.com",
-    telefono: "+57 301 234 5678",
-    rol: "soporte",
-    activo: true,
-    fecha_creacion: "2025-02-01T14:30:00Z",
-  },
-  {
-    id: 3,
-    nombre: "Juan Pérez",
-    correo: "juan@platform.com",
-    telefono: "+57 302 345 6789",
-    rol: "soporte",
-    activo: false,
-    fecha_creacion: "2025-03-10T09:15:00Z",
-  },
-  {
-    id: 4,
-    nombre: "María García",
-    correo: "maria@platform.com",
-    telefono: "+57 303 456 7890",
-    rol: "admin",
-    activo: true,
-    fecha_creacion: "2025-03-15T11:20:00Z",
-  },
-]
-
 export default function UsersPage() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [users, setUsers] = useState<User[]>([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     nombre: "",
@@ -62,12 +26,75 @@ export default function UsersPage() {
     contraseña: "",
     rol: "soporte" as "admin" | "soporte",
   })
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadUsers() {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await fetch("/api/admin-users", { signal: controller.signal })
+
+        if (!response.ok) {
+          throw new Error("No se pudo cargar la lista de usuarios")
+        }
+
+        const data: User[] = await response.json()
+        setUsers(data)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return
+        }
+
+        console.error(err)
+        setError("Error al cargar los usuarios")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadUsers()
+
+    return () => controller.abort()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Creating user:", formData)
-    setShowForm(false)
-    setFormData({ nombre: "", correo: "", telefono: "", contraseña: "", rol: "soporte" })
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const payload = {
+        nombre: formData.nombre,
+        correo: formData.correo,
+        telefono: formData.telefono.trim() === "" ? null : formData.telefono,
+        contraseña: formData.contraseña,
+        rol: formData.rol,
+      }
+
+      const response = await fetch("/api/admin-users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "No se pudo crear el usuario" }))
+        throw new Error(payload.error ?? "No se pudo crear el usuario")
+      }
+
+      const created: User = await response.json()
+      setUsers((prev) => [created, ...prev])
+      setShowForm(false)
+      setFormData({ nombre: "", correo: "", telefono: "", contraseña: "", rol: "soporte" })
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -168,7 +195,7 @@ export default function UsersPage() {
                         <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                           Cancelar
                         </Button>
-                        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+                          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={submitting}>
                           Crear Usuario
                         </Button>
                       </div>
@@ -177,13 +204,15 @@ export default function UsersPage() {
                 </Card>
               )}
 
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
               <Card>
                 <CardHeader>
                   <CardTitle>Lista de Usuarios</CardTitle>
                   <CardDescription>Administre los usuarios con acceso a la plataforma</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <UsersTable data={mockUsers} />
+                  <UsersTable data={users} loading={loading} />
                 </CardContent>
               </Card>
             </div>

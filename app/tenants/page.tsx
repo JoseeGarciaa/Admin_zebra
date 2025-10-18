@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { TenantsTable, type Tenant } from "@/components/tenants-table"
@@ -13,50 +13,10 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus } from "lucide-react"
 
-const mockTenants: Tenant[] = [
-  {
-    id: 1,
-    nombre: "Empresa ABC S.A.S",
-    nit: "900123456-1",
-    email_contacto: "contacto@abc.com",
-    telefono_contacto: "+57 300 111 2222",
-    direccion: "Calle 100 #15-20, Bogotá",
-    estado: "activo",
-    fecha_creacion: "2025-01-10T08:00:00Z",
-  },
-  {
-    id: 2,
-    nombre: "Corporación XYZ Ltda",
-    nit: "900654321-2",
-    email_contacto: "info@xyz.com",
-    telefono_contacto: "+57 301 222 3333",
-    direccion: "Carrera 7 #32-16, Medellín",
-    estado: "activo",
-    fecha_creacion: "2025-02-15T10:30:00Z",
-  },
-  {
-    id: 3,
-    nombre: "Industrias DEF",
-    nit: "900789012-3",
-    email_contacto: "admin@def.com",
-    telefono_contacto: "+57 302 333 4444",
-    direccion: "Avenida 68 #45-67, Cali",
-    estado: "inactivo",
-    fecha_creacion: "2025-03-01T14:15:00Z",
-  },
-  {
-    id: 4,
-    nombre: "Servicios GHI",
-    nit: "900456789-4",
-    email_contacto: "contacto@ghi.com",
-    telefono_contacto: "+57 303 444 5555",
-    direccion: "Calle 50 #23-45, Barranquilla",
-    estado: "suspendido",
-    fecha_creacion: "2025-03-20T09:45:00Z",
-  },
-]
-
 export default function TenantsPage() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [tenants, setTenants] = useState<Tenant[]>([])
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState({
     nombre: "",
@@ -66,19 +26,83 @@ export default function TenantsPage() {
     direccion: "",
     contraseña: "",
   })
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadTenants() {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await fetch("/api/tenants", { signal: controller.signal })
+
+        if (!response.ok) {
+          throw new Error("No se pudo cargar la lista de tenants")
+        }
+
+        const data: Tenant[] = await response.json()
+        setTenants(data)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") {
+          return
+        }
+
+        console.error(err)
+        setError("Error al cargar los tenants")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadTenants()
+
+    return () => controller.abort()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Creating tenant:", formData)
-    setShowForm(false)
-    setFormData({
-      nombre: "",
-      nit: "",
-      email_contacto: "",
-      telefono_contacto: "",
-      direccion: "",
-      contraseña: "",
-    })
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const payload = {
+        nombre: formData.nombre,
+        nit: formData.nit.trim() === "" ? null : formData.nit,
+        email_contacto: formData.email_contacto,
+        telefono_contacto: formData.telefono_contacto.trim() === "" ? null : formData.telefono_contacto,
+        direccion: formData.direccion.trim() === "" ? null : formData.direccion,
+        contraseña: formData.contraseña,
+      }
+
+      const response = await fetch("/api/tenants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "No se pudo crear el tenant" }))
+        throw new Error(payload.error ?? "No se pudo crear el tenant")
+      }
+
+      const created: Tenant = await response.json()
+      setTenants((prev) => [created, ...prev])
+      setShowForm(false)
+      setFormData({
+        nombre: "",
+        nit: "",
+        email_contacto: "",
+        telefono_contacto: "",
+        direccion: "",
+        contraseña: "",
+      })
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -181,7 +205,7 @@ export default function TenantsPage() {
                         <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                           Cancelar
                         </Button>
-                        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700">
+                        <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={submitting}>
                           Crear Tenant
                         </Button>
                       </div>
@@ -190,13 +214,15 @@ export default function TenantsPage() {
                 </Card>
               )}
 
+              {error && <p className="text-sm text-red-600">{error}</p>}
+
               <Card>
                 <CardHeader>
                   <CardTitle>Lista de Tenants</CardTitle>
                   <CardDescription>Administre las empresas registradas en la plataforma</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <TenantsTable data={mockTenants} />
+                  <TenantsTable data={tenants} loading={loading} />
                 </CardContent>
               </Card>
             </div>

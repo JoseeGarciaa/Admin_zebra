@@ -14,11 +14,34 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulated login - in production this would validate credentials
-    router.push("/dashboard")
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: email, contraseña: password }),
+      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: "Credenciales inválidas" }))
+        throw new Error(payload.error ?? "Credenciales inválidas")
+      }
+
+      await response.json()
+      router.push("/dashboard")
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -59,8 +82,9 @@ export default function LoginPage() {
                 required
               />
             </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-600">
-              Iniciar sesión
+              {loading ? "Validando..." : "Iniciar sesión"}
             </Button>
           </form>
         </CardContent>
