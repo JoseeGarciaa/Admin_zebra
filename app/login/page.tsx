@@ -23,10 +23,15 @@ export default function LoginPage() {
     setError(null)
 
     try {
+      const payload = {
+        correo: email.trim(),
+        contraseña: password.trim(),
+      }
+
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ correo: email, contraseña: password }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -35,6 +40,8 @@ export default function LoginPage() {
       }
 
       await response.json()
+      setEmail("")
+      setPassword("")
       router.push("/dashboard")
     } catch (err) {
       console.error(err)

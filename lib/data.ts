@@ -1,3 +1,5 @@
+import bcrypt from "bcryptjs"
+
 import { query } from "./db"
 
 export type AdminUser = {
@@ -41,12 +43,14 @@ export async function createAdminUser(data: {
   contraseña: string
   activo?: boolean
 }): Promise<AdminUser> {
+  const hashedPassword = await bcrypt.hash(data.contraseña, 10)
+
   const { rows } = await query<AdminUser>(
     `insert into admin_platform.admin_users
        (nombre, correo, telefono, rol, contraseña, activo)
      values ($1, $2, $3, $4, $5, coalesce($6, true))
      returning id, nombre, correo, telefono, rol, activo, ultimo_ingreso, fecha_creacion`,
-    [data.nombre, data.correo, data.telefono ?? null, data.rol, data.contraseña, data.activo ?? true],
+    [data.nombre, data.correo, data.telefono ?? null, data.rol, hashedPassword, data.activo ?? true],
   )
 
   return rows[0]
@@ -129,7 +133,13 @@ export async function authenticateAdminUser(credentials: {
     return null
   }
 
-  if (user.contraseña !== credentials.contraseña) {
+  const passwordMatches = await bcrypt.compare(credentials.contraseña, user.contraseña)
+
+  if (!passwordMatches) {
+    return null
+  }
+
+  if (!user.activo) {
     return null
   }
 

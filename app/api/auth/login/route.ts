@@ -4,8 +4,12 @@ import { z } from "zod"
 import { authenticateAdminUser } from "@/lib/data"
 
 const loginSchema = z.object({
-  correo: z.string().email(),
-  contraseña: z.string().min(1),
+  correo: z
+    .string()
+    .trim()
+    .email()
+    .transform((value) => value.toLowerCase()),
+  contraseña: z.string().trim().min(1),
 })
 
 export async function POST(request: Request) {
