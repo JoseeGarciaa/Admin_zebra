@@ -115,6 +115,7 @@ export function AccessChart({ data }: AccessChartProps) {
                   backgroundColor: "var(--card)",
                   color: "var(--card-foreground)",
                 }}
+                itemStyle={{ color: "var(--card-foreground)" }}
                 formatter={(value, name) => {
                   const serie = SERIES.find((item) => item.key === name)
                   return [Number(value).toLocaleString("es-CO"), serie?.label ?? name]

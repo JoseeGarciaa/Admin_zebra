@@ -63,6 +63,7 @@ export function UserStatusChart({ active, inactive }: UserStatusChartProps) {
                       backgroundColor: "var(--card)",
                       color: "var(--card-foreground)",
                     }}
+                    itemStyle={{ color: "var(--card-foreground)" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -72,7 +73,9 @@ export function UserStatusChart({ active, inactive }: UserStatusChartProps) {
                 <p className="text-sm uppercase tracking-wide text-muted-foreground">Usuarios activos</p>
                 <p className="text-3xl font-semibold text-foreground">
                   {active.toLocaleString("es-CO")}
-                  <span className="ml-2 text-base font-medium text-primary">{activePercent}%</span>
+                  <span className="ml-2 text-base font-medium text-primary text-opacity-90">
+                    {activePercent}%
+                  </span>
                 </p>
               </div>
               <div className="text-sm text-muted-foreground">
