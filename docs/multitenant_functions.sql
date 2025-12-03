@@ -2,11 +2,11 @@
 
 CREATE OR REPLACE FUNCTION admin_platform.crear_tenant(
     p_nombre text,
-    p_nit text DEFAULT NULL,
     p_email_contacto text,
+    p_password_hash text,
+    p_nit text DEFAULT NULL,
     p_telefono_contacto text DEFAULT NULL,
     p_direccion text DEFAULT NULL,
-    p_password_hash text,
     p_estado boolean DEFAULT true
 )
 RETURNS TABLE (

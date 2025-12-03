@@ -82,11 +82,11 @@ export async function createTenant(data: {
        from admin_platform.crear_tenant($1, $2, $3, $4, $5, $6, $7)`,
     [
       data.nombre,
-      data.nit ?? null,
       data.email_contacto,
+      hashedPassword,
+      data.nit ?? null,
       data.telefono_contacto ?? null,
       data.direccion ?? null,
-      hashedPassword,
       data.estado ?? true,
     ],
   )
