@@ -18,6 +18,7 @@ export default function TenantsPage() {
   const [error, setError] = useState<string | null>(null)
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [editingTenant, setEditingTenant] = useState<Tenant | null>(null)
   const [formData, setFormData] = useState({
     nombre: "",
     nit: "",
@@ -75,20 +76,46 @@ export default function TenantsPage() {
         contraseña: formData.contraseña,
       }
 
-      const response = await fetch("/api/tenants", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      if (editingTenant) {
+        const response = await fetch(`/api/tenants/${editingTenant.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            contraseña: formData.contraseña.trim() === "" ? undefined : formData.contraseña,
+            estado: editingTenant.estado,
+          }),
+        })
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: "No se pudo crear el tenant" }))
-        throw new Error(payload.error ?? "No se pudo crear el tenant")
+        const result = await response.json().catch(() => ({ error: "No se pudo actualizar el tenant" }))
+
+        if (!response.ok) {
+          const detailMessage = typeof result.details === "string" ? `: ${result.details}` : ""
+          throw new Error((result.error ?? "No se pudo actualizar el tenant") + detailMessage)
+        }
+
+        const updatedTenant = result as Tenant
+        setTenants((prev) => prev.map((item) => (item.id === updatedTenant.id ? updatedTenant : item)))
+      } else {
+        const response = await fetch("/api/tenants", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+
+        const result = await response.json().catch(() => ({ error: "No se pudo crear el tenant" }))
+
+        if (!response.ok) {
+          const detailMessage = typeof result.details === "string" ? `: ${result.details}` : ""
+          throw new Error((result.error ?? "No se pudo crear el tenant") + detailMessage)
+        }
+
+        const created = result as Tenant
+        setTenants((prev) => [created, ...prev])
       }
 
-      const created: Tenant = await response.json()
-      setTenants((prev) => [created, ...prev])
       setShowForm(false)
+      setEditingTenant(null)
       setFormData({
         nombre: "",
         nit: "",
@@ -102,6 +129,66 @@ export default function TenantsPage() {
       setError(err instanceof Error ? err.message : "Error desconocido")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleCreateClick = () => {
+    setError(null)
+    setEditingTenant(null)
+    setFormData({
+      nombre: "",
+      nit: "",
+      email_contacto: "",
+      telefono_contacto: "",
+      direccion: "",
+      contraseña: "",
+    })
+    setShowForm(true)
+  }
+
+  const handleEdit = (tenant: Tenant) => {
+    setError(null)
+    setEditingTenant(tenant)
+    setFormData({
+      nombre: tenant.nombre,
+      nit: tenant.nit ?? "",
+      email_contacto: tenant.email_contacto,
+      telefono_contacto: tenant.telefono_contacto ?? "",
+      direccion: tenant.direccion ?? "",
+      contraseña: "",
+    })
+    setShowForm(true)
+  }
+
+  const handleDelete = async (tenant: Tenant) => {
+    const confirmed = window.confirm(`¿Seguro que deseas eliminar el tenant "${tenant.nombre}"?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      setError(null)
+      const response = await fetch(`/api/tenants/${tenant.id}`, {
+        method: "DELETE",
+      })
+
+      const result = await response.json().catch(() => ({ error: "No se pudo eliminar el tenant" }))
+
+      if (!response.ok) {
+        const detailMessage = typeof result.details === "string" ? `: ${result.details}` : ""
+        throw new Error((result.error ?? "No se pudo eliminar el tenant") + detailMessage)
+      }
+
+      setTenants((prev) => prev.filter((item) => item.id !== tenant.id))
+
+      if (editingTenant?.id === tenant.id) {
+        setEditingTenant(null)
+        setShowForm(false)
+      }
+    } catch (err) {
+      console.error(err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
     }
   }
 
@@ -125,7 +212,7 @@ export default function TenantsPage() {
                   <h1 className="text-3xl font-bold">Multitenants</h1>
                   <p className="text-muted-foreground mt-1">Gestión de empresas y organizaciones en la plataforma</p>
                 </div>
-                <Button onClick={() => setShowForm(!showForm)} className="bg-emerald-600 hover:bg-emerald-700">
+                <Button onClick={handleCreateClick} className="bg-emerald-600 hover:bg-emerald-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Nuevo Tenant
                 </Button>
@@ -134,8 +221,12 @@ export default function TenantsPage() {
               {showForm && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Crear Nuevo Tenant</CardTitle>
-                    <CardDescription>Complete los datos de la empresa u organización</CardDescription>
+                    <CardTitle>{editingTenant ? "Editar Tenant" : "Crear Nuevo Tenant"}</CardTitle>
+                    <CardDescription>
+                      {editingTenant
+                        ? "Actualice la información del tenant seleccionado"
+                        : "Complete los datos de la empresa u organización"}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -151,13 +242,13 @@ export default function TenantsPage() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="nit">NIT *</Label>
+                          <Label htmlFor="nit">NIT {editingTenant ? "(opcional)" : "*"}</Label>
                           <Input
                             id="nit"
                             value={formData.nit}
                             onChange={(e) => setFormData({ ...formData, nit: e.target.value })}
                             placeholder="900123456-1"
-                            required
+                            required={!editingTenant}
                           />
                         </div>
                         <div className="space-y-2">
@@ -190,23 +281,40 @@ export default function TenantsPage() {
                           />
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="contraseña">Contraseña inicial *</Label>
+                          <Label htmlFor="contraseña">
+                            Contraseña {editingTenant ? "(opcional)" : "inicial *"}
+                          </Label>
                           <Input
                             id="contraseña"
                             type="password"
                             value={formData.contraseña}
                             onChange={(e) => setFormData({ ...formData, contraseña: e.target.value })}
                             placeholder="Mínimo 8 caracteres"
-                            required
+                            required={!editingTenant}
                           />
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end">
-                        <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowForm(false)
+                            setEditingTenant(null)
+                            setFormData({
+                              nombre: "",
+                              nit: "",
+                              email_contacto: "",
+                              telefono_contacto: "",
+                              direccion: "",
+                              contraseña: "",
+                            })
+                          }}
+                        >
                           Cancelar
                         </Button>
                         <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={submitting}>
-                          Crear Tenant
+                          {editingTenant ? "Guardar Cambios" : "Crear Tenant"}
                         </Button>
                       </div>
                     </form>
@@ -222,7 +330,7 @@ export default function TenantsPage() {
                   <CardDescription>Administre las empresas registradas en la plataforma</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <TenantsTable data={tenants} loading={loading} />
+                  <TenantsTable data={tenants} loading={loading} onEdit={handleEdit} onDelete={handleDelete} />
                 </CardContent>
               </Card>
             </div>

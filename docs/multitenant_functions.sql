@@ -18,7 +18,8 @@ RETURNS TABLE (
     direccion text,
     estado boolean,
     ultimo_ingreso timestamp,
-    fecha_creacion timestamp
+    fecha_creacion timestamp,
+    esquema text
 )
 LANGUAGE plpgsql
 AS $function$
@@ -351,7 +352,8 @@ BEGIN
         tenant_row.direccion,
         tenant_row.estado,
         tenant_row.ultimo_ingreso,
-        tenant_row.fecha_creacion;
+        tenant_row.fecha_creacion,
+        tenant_row.esquema;
 EXCEPTION WHEN OTHERS THEN
     BEGIN
         IF nuevo_esquema IS NOT NULL THEN

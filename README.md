@@ -63,6 +63,7 @@ Consulta el archivo `docs/schema.sql` (o las DDL proporcionadas) para crear las 
 - La API de creación de tenants ahora invoca `admin_platform.crear_tenant`, que además de generar el nuevo registro en `admin_platform.tenants` duplica el esquema base y crea un usuario administrador con contraseña *hash* dentro del esquema recién provisionado.
 - Asegúrate de que exista el esquema plantilla `tenant_base` con la estructura enviada (tablas, secuencias, triggers y la función `set_updated_at`).
 - La contraseña enviada desde el formulario se cifra con bcrypt en la aplicación antes de invocar la función almacenada; el hash resultante se reutiliza para el usuario administrador del tenant.
+- Las vistas de administración permiten crear, editar (incluida la rotación opcional de contraseña) y eliminar tenants consumiendo las funciones anteriores (`PUT`/`DELETE` via `/api/tenants/:id`).
 
 ## Despliegue en Railway
 

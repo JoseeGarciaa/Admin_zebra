@@ -37,6 +37,12 @@ export type Tenant = {
   estado: boolean
   ultimo_ingreso: string | null
   fecha_creacion: string | null
+  esquema: string | null
+}
+
+type TableMeta = {
+  onEdit?: (tenant: Tenant) => void
+  onDelete?: (tenant: Tenant) => void
 }
 
 export const columns: ColumnDef<Tenant>[] = [
@@ -108,11 +114,22 @@ export const columns: ColumnDef<Tenant>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Acciones</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                const meta = (row as unknown as { table: { options: { meta?: TableMeta } } }).table.options.meta
+                meta?.onEdit?.(row.original)
+              }}
+            >
               <Pencil className="mr-2 h-4 w-4" />
               Editar
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
+            <DropdownMenuItem
+              className="text-destructive"
+              onSelect={() => {
+                const meta = (row as unknown as { table: { options: { meta?: TableMeta } } }).table.options.meta
+                meta?.onDelete?.(row.original)
+              }}
+            >
               <Trash2 className="mr-2 h-4 w-4" />
               Eliminar
             </DropdownMenuItem>
@@ -126,15 +143,21 @@ export const columns: ColumnDef<Tenant>[] = [
 interface TenantsTableProps {
   data: Tenant[]
   loading?: boolean
+  onEdit?: (tenant: Tenant) => void
+  onDelete?: (tenant: Tenant) => void
 }
 
-export function TenantsTable({ data, loading }: TenantsTableProps) {
+export function TenantsTable({ data, loading, onEdit, onDelete }: TenantsTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
   const table = useReactTable({
     data,
     columns,
+    meta: {
+      onEdit,
+      onDelete,
+    } satisfies TableMeta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,

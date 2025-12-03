@@ -23,6 +23,7 @@ export type Tenant = {
   estado: boolean
   ultimo_ingreso: string | null
   fecha_creacion: string | null
+  esquema: string | null
 }
 
 export async function getAdminUsers(): Promise<AdminUser[]> {
@@ -58,7 +59,7 @@ export async function createAdminUser(data: {
 
 export async function getTenants(): Promise<Tenant[]> {
   const { rows } = await query<Tenant>(
-    `select id, nombre, nit, email_contacto, telefono_contacto, direccion, estado, ultimo_ingreso, fecha_creacion
+    `select id, nombre, nit, email_contacto, telefono_contacto, direccion, estado, ultimo_ingreso, fecha_creacion, esquema
      from admin_platform.tenants
      order by id desc`,
   )
@@ -96,6 +97,90 @@ export async function createTenant(data: {
   }
 
   return rows[0]
+}
+
+export async function getTenantById(id: number): Promise<Tenant | null> {
+  const { rows } = await query<Tenant>(
+    `select id, nombre, nit, email_contacto, telefono_contacto, direccion, estado, ultimo_ingreso, fecha_creacion, esquema
+       from admin_platform.tenants
+      where id = $1
+      limit 1`,
+    [id],
+  )
+
+  return rows[0] ?? null
+}
+
+export async function updateTenant(
+  id: number,
+  data: {
+    nombre?: string
+    nit?: string | null
+    email_contacto?: string
+    telefono_contacto?: string | null
+    direccion?: string | null
+    contraseña?: string | null
+    estado?: boolean
+    esquema?: string | null
+  },
+): Promise<Tenant> {
+  const tenant = await getTenantById(id)
+
+  if (!tenant || !tenant.esquema) {
+    throw new Error("Tenant no encontrado")
+  }
+
+  const hashedPassword = data.contraseña ? await bcrypt.hash(data.contraseña, 10) : null
+
+  await query(
+    `select admin_platform.actualizar_tenant($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      tenant.esquema,
+      data.esquema ?? null,
+      data.nombre ?? tenant.nombre,
+      data.email_contacto ?? tenant.email_contacto,
+      data.telefono_contacto === undefined ? tenant.telefono_contacto : data.telefono_contacto,
+      hashedPassword,
+      typeof data.estado === "boolean" ? data.estado : tenant.estado,
+    ],
+  )
+
+  if (data.nit !== undefined || data.direccion !== undefined || data.telefono_contacto !== undefined) {
+    await query(
+      `update admin_platform.tenants
+          set nit = case when $1 then $2 else nit end,
+              direccion = case when $3 then $4 else direccion end,
+              telefono_contacto = case when $5 then $6 else telefono_contacto end
+        where id = $7`,
+      [
+        data.nit !== undefined,
+        data.nit ?? null,
+        data.direccion !== undefined,
+        data.direccion ?? null,
+        data.telefono_contacto !== undefined,
+        data.telefono_contacto ?? null,
+        id,
+      ],
+    )
+  }
+
+  const updated = await getTenantById(id)
+
+  if (!updated) {
+    throw new Error("No se pudo actualizar el tenant")
+  }
+
+  return updated
+}
+
+export async function deleteTenant(id: number): Promise<void> {
+  const tenant = await getTenantById(id)
+
+  if (!tenant || !tenant.esquema) {
+    throw new Error("Tenant no encontrado")
+  }
+
+  await query(`select admin_platform.eliminar_tenant($1)`, [tenant.esquema])
 }
 
 type MonthlyBreakdownRow = {
