@@ -16,21 +16,21 @@ export function StatsCard({ title, value, change, trend, icon: Icon }: StatsCard
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-600">{title}</p>
-            <p className="text-3xl font-bold text-slate-900">{value}</p>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-3xl font-bold text-foreground">{value}</p>
             <p
               className={cn(
-                "text-sm font-medium",
+                "text-sm font-medium text-muted-foreground",
                 trend === "up" && "text-emerald-600",
                 trend === "down" && "text-red-600",
-                trend === "neutral" && "text-slate-600",
+                trend === "neutral" && "text-muted-foreground",
               )}
             >
               {change}
             </p>
           </div>
-          <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
-            <Icon className="w-6 h-6 text-slate-600" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+            <Icon className="h-6 w-6 text-muted-foreground" />
           </div>
         </div>
       </CardContent>

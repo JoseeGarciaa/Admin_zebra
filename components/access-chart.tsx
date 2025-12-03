@@ -5,12 +5,13 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Toolti
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type SeriesKey = "usuarios" | "empresas"
 
 const SERIES: Array<{ key: SeriesKey; label: string; color: string }> = [
-  { key: "usuarios", label: "Usuarios", color: "#6366F1" },
-  { key: "empresas", label: "Empresas", color: "#10B981" },
+  { key: "usuarios", label: "Usuarios", color: "var(--chart-1)" },
+  { key: "empresas", label: "Empresas", color: "var(--chart-2)" },
 ]
 
 export type AccessChartPoint = {
@@ -76,7 +77,7 @@ export function AccessChart({ data }: AccessChartProps) {
                 variant={isActive ? "default" : "outline"}
                 size="sm"
                 onClick={() => toggleSeries(serie.key)}
-                className={isActive ? "bg-slate-900 hover:bg-slate-800" : "text-slate-600"}
+                className={cn(!isActive && "text-muted-foreground")}
               >
                 <span
                   className="mr-2 h-2 w-2 rounded-full"
@@ -93,18 +94,27 @@ export function AccessChart({ data }: AccessChartProps) {
         {hasData ? (
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={chartData} barCategoryGap={32}>
-              <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" />
-              <XAxis dataKey="label" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+              <CartesianGrid strokeDasharray="4 4" stroke="var(--border)" strokeOpacity={0.4} />
+              <XAxis
+                dataKey="label"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+              />
               <YAxis
-                stroke="#94a3b8"
-                fontSize={12}
                 tickLine={false}
                 axisLine={false}
                 allowDecimals={false}
+                tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
               />
               <Tooltip
-                cursor={{ fill: "rgba(15, 23, 42, 0.05)" }}
-                contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0" }}
+                cursor={{ fill: "var(--muted)", opacity: 0.2 }}
+                contentStyle={{
+                  borderRadius: 8,
+                  borderColor: "var(--border)",
+                  backgroundColor: "var(--card)",
+                  color: "var(--card-foreground)",
+                }}
                 formatter={(value, name) => {
                   const serie = SERIES.find((item) => item.key === name)
                   return [Number(value).toLocaleString("es-CO"), serie?.label ?? name]
@@ -123,7 +133,7 @@ export function AccessChart({ data }: AccessChartProps) {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex h-72 items-center justify-center text-sm text-slate-500">
+          <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
             No hay registros recientes para mostrar.
           </div>
         )}

@@ -17,7 +17,7 @@ export function ActivityList({ activities }: ActivityListProps) {
     <Card>
       <CardHeader>
         <CardTitle>Actividad Reciente</CardTitle>
-        <p className="text-sm text-slate-600">Últimos eventos de acceso registrados</p>
+        <p className="text-sm text-muted-foreground">Últimos eventos de acceso registrados</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -30,9 +30,9 @@ export function ActivityList({ activities }: ActivityListProps) {
                   }`}
                 />
                 <div>
-                  <p className="font-medium text-slate-900">{activity.name}</p>
-                  <p className="text-sm text-slate-600">{activity.location}</p>
-                  <p className="text-xs text-slate-500 mt-1">{activity.time}</p>
+                  <p className="font-medium text-foreground">{activity.name}</p>
+                  <p className="text-sm text-muted-foreground">{activity.location}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/80">{activity.time}</p>
                 </div>
               </div>
               <Badge

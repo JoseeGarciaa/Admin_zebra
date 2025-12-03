@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-const COLORS = ["#6366F1", "#E0E7FF"]
+const COLORS = ["var(--chart-1)", "var(--chart-2)"]
 
 interface UserStatusChartProps {
   active: number
@@ -32,7 +32,7 @@ export function UserStatusChart({ active, inactive }: UserStatusChartProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-6">
         {total === 0 ? (
-          <div className="flex h-72 items-center justify-center text-sm text-slate-500">
+          <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
             No hay usuarios registrados todavía.
           </div>
         ) : (
@@ -57,20 +57,25 @@ export function UserStatusChart({ active, inactive }: UserStatusChartProps) {
                       `${value.toLocaleString("es-CO")} usuarios`,
                       name,
                     ]}
-                    contentStyle={{ borderRadius: 8, borderColor: "#e2e8f0" }}
+                    contentStyle={{
+                      borderRadius: 8,
+                      borderColor: "var(--border)",
+                      backgroundColor: "var(--card)",
+                      color: "var(--card-foreground)",
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             </div>
             <div className="space-y-4">
               <div>
-                <p className="text-sm uppercase tracking-wide text-slate-500">Usuarios activos</p>
-                <p className="text-3xl font-semibold text-slate-900">
+                <p className="text-sm uppercase tracking-wide text-muted-foreground">Usuarios activos</p>
+                <p className="text-3xl font-semibold text-foreground">
                   {active.toLocaleString("es-CO")}
-                  <span className="ml-2 text-base font-medium text-indigo-600">{activePercent}%</span>
+                  <span className="ml-2 text-base font-medium text-primary">{activePercent}%</span>
                 </p>
               </div>
-              <div className="text-sm text-slate-600">
+              <div className="text-sm text-muted-foreground">
                 <p>Inactivos: {inactive.toLocaleString("es-CO")}</p>
                 <p>Total: {total.toLocaleString("es-CO")}</p>
               </div>
