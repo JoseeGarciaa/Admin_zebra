@@ -36,11 +36,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Datos inválidos", details: error.flatten() }, { status: 400 })
     }
 
-    const message =
-      error instanceof Error && error.message.includes("duplicate key")
-        ? "El tenant ya existe con esos datos"
-        : "No se pudo crear el tenant"
+    if (error instanceof Error && error.message.includes("duplicate key")) {
+      return NextResponse.json({ error: "El tenant ya existe con esos datos" }, { status: 400 })
+    }
 
-    return NextResponse.json({ error: message }, { status: 500 })
+    const details = error instanceof Error ? error.message : "Error desconocido"
+
+    return NextResponse.json({ error: "No se pudo crear el tenant", details }, { status: 500 })
   }
 }
