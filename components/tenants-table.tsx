@@ -40,105 +40,103 @@ export type Tenant = {
   esquema: string | null
 }
 
-type TableMeta = {
-  onEdit?: (tenant: Tenant) => void
-  onDelete?: (tenant: Tenant) => void
+function createColumns(
+  onEdit?: (tenant: Tenant) => void,
+  onDelete?: (tenant: Tenant) => void,
+): ColumnDef<Tenant>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <div className="font-medium">#{row.getValue("id")}</div>,
+    },
+    {
+      accessorKey: "nombre",
+      header: ({ column }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+            Nombre
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
+    },
+    {
+      accessorKey: "nit",
+      header: "NIT",
+      cell: ({ row }) => row.getValue("nit") ?? "—",
+    },
+    {
+      accessorKey: "email_contacto",
+      header: "Email",
+      cell: ({ row }) => <div className="lowercase">{row.getValue("email_contacto")}</div>,
+    },
+    {
+      accessorKey: "telefono_contacto",
+      header: "Teléfono",
+      cell: ({ row }) => row.getValue("telefono_contacto") ?? "—",
+    },
+    {
+      accessorKey: "estado",
+      header: "Estado",
+      cell: ({ row }) => {
+        const estado = row.getValue("estado") as boolean
+        return <Badge variant={estado ? "default" : "destructive"}>{estado ? "Activo" : "Inactivo"}</Badge>
+      },
+    },
+    {
+      accessorKey: "fecha_creacion",
+      header: "Fecha Creación",
+      cell: ({ row }) => {
+        const value = row.getValue("fecha_creacion") as string | null
+
+        if (!value) {
+          return <div>—</div>
+        }
+
+        const date = new Date(value)
+        return <div>{date.toLocaleDateString("es-ES")}</div>
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => {
+                  onEdit?.(row.original)
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={() => {
+                  onDelete?.(row.original)
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
+    },
+  ]
 }
-
-export const columns: ColumnDef<Tenant>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <div className="font-medium">#{row.getValue("id")}</div>,
-  },
-  {
-    accessorKey: "nombre",
-    header: ({ column }) => {
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Nombre
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
-    },
-    cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
-  },
-  {
-    accessorKey: "nit",
-    header: "NIT",
-    cell: ({ row }) => row.getValue("nit") ?? "—",
-  },
-  {
-    accessorKey: "email_contacto",
-    header: "Email",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email_contacto")}</div>,
-  },
-  {
-    accessorKey: "telefono_contacto",
-    header: "Teléfono",
-    cell: ({ row }) => row.getValue("telefono_contacto") ?? "—",
-  },
-  {
-    accessorKey: "estado",
-    header: "Estado",
-    cell: ({ row }) => {
-      const estado = row.getValue("estado") as boolean
-      return <Badge variant={estado ? "default" : "destructive"}>{estado ? "Activo" : "Inactivo"}</Badge>
-    },
-  },
-  {
-    accessorKey: "fecha_creacion",
-    header: "Fecha Creación",
-    cell: ({ row }) => {
-      const value = row.getValue("fecha_creacion") as string | null
-
-      if (!value) {
-        return <div>—</div>
-      }
-
-      const date = new Date(value)
-      return <div>{date.toLocaleDateString("es-ES")}</div>
-    },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => {
-                const meta = (row as unknown as { table: { options: { meta?: TableMeta } } }).table.options.meta
-                meta?.onEdit?.(row.original)
-              }}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive"
-              onSelect={() => {
-                const meta = (row as unknown as { table: { options: { meta?: TableMeta } } }).table.options.meta
-                meta?.onDelete?.(row.original)
-              }}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    },
-  },
-]
 
 interface TenantsTableProps {
   data: Tenant[]
@@ -151,13 +149,11 @@ export function TenantsTable({ data, loading, onEdit, onDelete }: TenantsTablePr
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
 
+  const columns = React.useMemo(() => createColumns(onEdit, onDelete), [onEdit, onDelete])
+
   const table = useReactTable({
     data,
     columns,
-    meta: {
-      onEdit,
-      onDelete,
-    } satisfies TableMeta,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
