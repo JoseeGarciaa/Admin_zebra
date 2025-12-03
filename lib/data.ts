@@ -94,24 +94,141 @@ export async function createTenant(data: {
   return rows[0]
 }
 
-export async function getDashboardMetrics(): Promise<{
-  totalUsers: number
-  activeUsers: number
-  totalTenants: number
-  activeTenants: number
-}> {
-  const [usersTotalResult, usersActiveResult, tenantTotalResult, tenantActiveResult] = await Promise.all([
+type MonthlyBreakdownRow = {
+  month_key: string
+  total: number
+}
+
+type DashboardMonth = {
+  monthKey: string
+  label: string
+  usuarios: number
+  empresas: number
+}
+
+export type DashboardMetrics = {
+  totals: {
+    totalUsers: number
+    activeUsers: number
+    inactiveUsers: number
+    totalTenants: number
+    activeTenants: number
+    inactiveTenants: number
+    activeToday: number
+  }
+  growth: {
+    users: number
+    tenants: number
+    overall: number
+  }
+  monthly: DashboardMonth[]
+}
+
+function buildLastMonths(windowSize = 6): { monthKey: string; label: string }[] {
+  const formatter = new Intl.DateTimeFormat("es-ES", { month: "short" })
+
+  return Array.from({ length: windowSize }, (_, index) => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    date.setMonth(date.getMonth() - (windowSize - 1 - index))
+
+    const monthKey = date.toISOString().slice(0, 7)
+    const label = formatter.format(date).replace(/\.$/, "")
+
+    return { monthKey, label: label.charAt(0).toUpperCase() + label.slice(1) }
+  })
+}
+
+function computeGrowth(current: number, previous: number): number {
+  if (previous === 0) {
+    return current === 0 ? 0 : 100
+  }
+
+  return ((current - previous) / previous) * 100
+}
+
+export async function getDashboardMetrics(windowSize = 6): Promise<DashboardMetrics> {
+  const months = buildLastMonths(windowSize)
+
+  const [
+    usersTotalResult,
+    usersActiveResult,
+    tenantTotalResult,
+    tenantActiveResult,
+    activeTodayResult,
+    usersMonthlyResult,
+    tenantsMonthlyResult,
+  ] = await Promise.all([
     query<{ count: string }>("select count(*) from admin_platform.admin_users"),
     query<{ count: string }>("select count(*) from admin_platform.admin_users where activo = true"),
     query<{ count: string }>("select count(*) from admin_platform.tenants"),
     query<{ count: string }>("select count(*) from admin_platform.tenants where estado = true"),
+    query<{ count: string }>(
+      "select count(*) from admin_platform.admin_users where date(ultimo_ingreso) = current_date",
+    ),
+    query<MonthlyBreakdownRow>(
+      `select to_char(date_trunc('month', fecha_creacion), 'YYYY-MM') as month_key,
+              count(*)::int as total
+         from admin_platform.admin_users
+        where fecha_creacion >= date_trunc('month', now()) - interval '${windowSize - 1} months'
+          and fecha_creacion is not null
+        group by month_key`,
+    ),
+    query<MonthlyBreakdownRow>(
+      `select to_char(date_trunc('month', fecha_creacion), 'YYYY-MM') as month_key,
+              count(*)::int as total
+         from admin_platform.tenants
+        where fecha_creacion >= date_trunc('month', now()) - interval '${windowSize - 1} months'
+          and fecha_creacion is not null
+        group by month_key`,
+    ),
   ])
 
+  const totalUsers = Number(usersTotalResult.rows[0]?.count ?? 0)
+  const activeUsers = Number(usersActiveResult.rows[0]?.count ?? 0)
+  const inactiveUsers = Math.max(totalUsers - activeUsers, 0)
+  const totalTenants = Number(tenantTotalResult.rows[0]?.count ?? 0)
+  const activeTenants = Number(tenantActiveResult.rows[0]?.count ?? 0)
+  const inactiveTenants = Math.max(totalTenants - activeTenants, 0)
+  const activeToday = Number(activeTodayResult.rows[0]?.count ?? 0)
+
+  const usersMonthlyMap = new Map(
+    usersMonthlyResult.rows.map((row) => [row.month_key, Number(row.total ?? 0)]) as Array<[string, number]>,
+  )
+  const tenantsMonthlyMap = new Map(
+    tenantsMonthlyResult.rows.map((row) => [row.month_key, Number(row.total ?? 0)]) as Array<[string, number]>,
+  )
+
+  const monthly: DashboardMonth[] = months.map(({ monthKey, label }) => ({
+    monthKey,
+    label,
+    usuarios: usersMonthlyMap.get(monthKey) ?? 0,
+    empresas: tenantsMonthlyMap.get(monthKey) ?? 0,
+  }))
+
+  const currentMonth = monthly.at(-1) ?? { usuarios: 0, empresas: 0 }
+  const previousMonth = monthly.at(-2) ?? { usuarios: 0, empresas: 0 }
+
+  const usersGrowth = computeGrowth(currentMonth.usuarios, previousMonth.usuarios)
+  const tenantsGrowth = computeGrowth(currentMonth.empresas, previousMonth.empresas)
+  const overallGrowth = (usersGrowth + tenantsGrowth) / 2
+
   return {
-    totalUsers: Number(usersTotalResult.rows[0]?.count ?? 0),
-    activeUsers: Number(usersActiveResult.rows[0]?.count ?? 0),
-    totalTenants: Number(tenantTotalResult.rows[0]?.count ?? 0),
-    activeTenants: Number(tenantActiveResult.rows[0]?.count ?? 0),
+    totals: {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      totalTenants,
+      activeTenants,
+      inactiveTenants,
+      activeToday,
+    },
+    growth: {
+      users: usersGrowth,
+      tenants: tenantsGrowth,
+      overall: overallGrowth,
+    },
+    monthly,
   }
 }
 

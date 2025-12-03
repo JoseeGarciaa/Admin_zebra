@@ -1,83 +1,85 @@
 import type React from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { StatsCard } from "@/components/stats-card"
-import { ActivityList } from "@/components/activity-list"
+import { StatsCard, type StatsCardProps } from "@/components/stats-card"
 import { AccessChart } from "@/components/access-chart"
+import { UserStatusChart } from "@/components/user-status-chart"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { getDashboardMetrics } from "@/lib/data"
-import { Users, UserCheck, Building2, Building } from "lucide-react"
+import { getDashboardMetrics, type DashboardMetrics } from "@/lib/data"
+import { Users, UserCheck, Building2, TrendingUp } from "lucide-react"
+
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+function formatNumber(value: number) {
+  return value.toLocaleString("es-CO")
+}
+
+function formatChange(value: number) {
+  const formatted = Math.abs(value).toFixed(1).replace(/\.0$/, "")
+  return `${value >= 0 ? "+" : "-"}${formatted}% vs mes anterior`
+}
+
+function growthTrend(value: number): "up" | "down" | "neutral" {
+  if (value > 0) return "up"
+  if (value < 0) return "down"
+  return "neutral"
+}
 
 export default async function DashboardPage() {
-  let metrics: Awaited<ReturnType<typeof getDashboardMetrics>>
+  let metrics: DashboardMetrics
 
   try {
     metrics = await getDashboardMetrics()
   } catch (error) {
     console.error("No se pudieron cargar las métricas del dashboard", error)
     metrics = {
-      totalUsers: 0,
-      activeUsers: 0,
-      totalTenants: 0,
-      activeTenants: 0,
+      totals: {
+        totalUsers: 0,
+        activeUsers: 0,
+        inactiveUsers: 0,
+        totalTenants: 0,
+        activeTenants: 0,
+        inactiveTenants: 0,
+        activeToday: 0,
+      },
+      growth: {
+        users: 0,
+        tenants: 0,
+        overall: 0,
+      },
+      monthly: [],
     }
   }
 
-  const stats = [
+  const stats: StatsCardProps[] = [
     {
-      title: "Usuarios totales",
-      value: metrics.totalUsers.toString(),
-      change: `Activos: ${metrics.activeUsers}`,
-      trend: "neutral" as const,
+      title: "Total Usuarios",
+      value: formatNumber(metrics.totals.totalUsers),
+      change: `Activos: ${formatNumber(metrics.totals.activeUsers)} • ${formatChange(metrics.growth.users)}`,
+      trend: growthTrend(metrics.growth.users),
       icon: Users,
     },
     {
-      title: "Usuarios activos",
-      value: metrics.activeUsers.toString(),
-      change: `Inactivos: ${Math.max(metrics.totalUsers - metrics.activeUsers, 0)}`,
-      trend: "neutral" as const,
-      icon: UserCheck,
-    },
-    {
-      title: "Tenants totales",
-      value: metrics.totalTenants.toString(),
-      change: `Activos: ${metrics.activeTenants}`,
-      trend: "neutral" as const,
+      title: "Total Empresas",
+      value: formatNumber(metrics.totals.totalTenants),
+      change: `Activas: ${formatNumber(metrics.totals.activeTenants)} • ${formatChange(metrics.growth.tenants)}`,
+      trend: growthTrend(metrics.growth.tenants),
       icon: Building2,
     },
     {
-      title: "Tenants activos",
-      value: metrics.activeTenants.toString(),
-      change: `Inactivos: ${Math.max(metrics.totalTenants - metrics.activeTenants, 0)}`,
-      trend: "neutral" as const,
-      icon: Building,
-    },
-  ]
-
-  const recentActivity = [
-    {
-      name: "Juan Pérez",
-      location: "Puerta Principal",
-      time: "Hace 2 minutos",
-      status: "granted" as const,
+      title: "Tasa Crecimiento",
+      value: `${metrics.growth.overall >= 0 ? "+" : "-"}${Math.abs(metrics.growth.overall).toFixed(1)}%`,
+      change: "Promedio mensual combinando usuarios y empresas",
+      trend: growthTrend(metrics.growth.overall),
+      icon: TrendingUp,
     },
     {
-      name: "María García",
-      location: "Laboratorio A",
-      time: "Hace 5 minutos",
-      status: "granted" as const,
-    },
-    {
-      name: "Carlos López",
-      location: "Sala de Servidores",
-      time: "Hace 8 minutos",
-      status: "denied" as const,
-    },
-    {
-      name: "Ana Martínez",
-      location: "Oficina 201",
-      time: "Hace 12 minutos",
-      status: "granted" as const,
+      title: "Activos Hoy",
+      value: formatNumber(metrics.totals.activeToday),
+      change: `Usuarios activos • ${formatNumber(metrics.totals.inactiveUsers)} inactivos`,
+      trend: metrics.totals.activeToday > 0 ? "up" : "neutral",
+      icon: UserCheck,
     },
   ]
 
@@ -108,8 +110,14 @@ export default async function DashboardPage() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <AccessChart />
-                <ActivityList activities={recentActivity} />
+                <AccessChart
+                  data={metrics.monthly.map((month) => ({
+                    label: month.label,
+                    usuarios: month.usuarios,
+                    empresas: month.empresas,
+                  }))}
+                />
+                <UserStatusChart active={metrics.totals.activeUsers} inactive={metrics.totals.inactiveUsers} />
               </div>
             </div>
           </div>
