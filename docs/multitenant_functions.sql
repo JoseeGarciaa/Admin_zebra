@@ -123,6 +123,17 @@ BEGIN
           FROM pg_sequences
          WHERE schemaname = base_schema
     LOOP
+        PERFORM 1
+          FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = nuevo_esquema
+           AND c.relkind = 'S'
+           AND c.relname = seq_rec.sequencename;
+
+        IF FOUND THEN
+            CONTINUE;
+        END IF;
+
         seq_sql := format(
             'CREATE SEQUENCE %I.%I AS %s INCREMENT BY %s START WITH %s CACHE %s ',
             nuevo_esquema,
@@ -151,11 +162,7 @@ BEGIN
             seq_sql := seq_sql || 'NO CYCLE;';
         END IF;
 
-        BEGIN
-            EXECUTE seq_sql;
-        EXCEPTION WHEN duplicate_object THEN
-            NULL;
-        END;
+        EXECUTE seq_sql;
     END LOOP;
 
     FOR fn_record IN
