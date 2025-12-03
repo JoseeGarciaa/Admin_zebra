@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock } from "lucide-react"
+import type { AdminUser } from "@/lib/data"
+import { storeAdminUser } from "@/lib/session"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -39,7 +41,8 @@ export default function LoginPage() {
         throw new Error(payload.error ?? "Credenciales inválidas")
       }
 
-      await response.json()
+      const user = (await response.json()) as AdminUser
+      storeAdminUser(user)
       setEmail("")
       setPassword("")
       router.push("/dashboard")

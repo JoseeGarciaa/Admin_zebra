@@ -5,6 +5,7 @@ import { StatsCard, type StatsCardProps } from "@/components/stats-card"
 import { AccessChart } from "@/components/access-chart"
 import { UserStatusChart } from "@/components/user-status-chart"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SessionGuard } from "@/components/session-guard"
 import { getDashboardMetrics, type DashboardMetrics } from "@/lib/data"
 import { Users, UserCheck, Building2, TrendingUp } from "lucide-react"
 
@@ -84,45 +85,47 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--header-height": "3rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
-              <div>
-                <h1 className="text-3xl font-bold">Dashboard</h1>
-                <p className="text-muted-foreground mt-1">Monitoreo en tiempo real del sistema de control de acceso</p>
-              </div>
+    <SessionGuard>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "16rem",
+            "--header-height": "3rem",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
+                <div>
+                  <h1 className="text-3xl font-bold">Dashboard</h1>
+                  <p className="text-muted-foreground mt-1">Monitoreo en tiempo real del sistema de control de acceso</p>
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {stats.map((stat, index) => (
-                  <StatsCard key={index} {...stat} />
-                ))}
-              </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {stats.map((stat, index) => (
+                    <StatsCard key={index} {...stat} />
+                  ))}
+                </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <AccessChart
-                  data={metrics.monthly.map((month) => ({
-                    label: month.label,
-                    usuarios: month.usuarios,
-                    empresas: month.empresas,
-                  }))}
-                />
-                <UserStatusChart active={metrics.totals.activeUsers} inactive={metrics.totals.inactiveUsers} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <AccessChart
+                    data={metrics.monthly.map((month) => ({
+                      label: month.label,
+                      usuarios: month.usuarios,
+                      empresas: month.empresas,
+                    }))}
+                  />
+                  <UserStatusChart active={metrics.totals.activeUsers} inactive={metrics.totals.inactiveUsers} />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </SessionGuard>
   )
 }

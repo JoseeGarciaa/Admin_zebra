@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { UsersTable, type User } from "@/components/users-table"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SessionGuard } from "@/components/session-guard"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -98,127 +99,129 @@ export default function UsersPage() {
   }
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "16rem",
-          "--header-height": "3rem",
-        } as React.CSSProperties
-      }
-    >
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <SiteHeader />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">Usuarios Administrativos</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Gestión de usuarios con acceso al panel de administración
-                  </p>
+    <SessionGuard>
+      <SidebarProvider
+        style={
+          {
+            "--sidebar-width": "16rem",
+            "--header-height": "3rem",
+          } as React.CSSProperties
+        }
+      >
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <SiteHeader />
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-3xl font-bold">Usuarios Administrativos</h1>
+                    <p className="text-muted-foreground mt-1">
+                      Gestión de usuarios con acceso al panel de administración
+                    </p>
+                  </div>
+                  <Button onClick={() => setShowForm(!showForm)} className="bg-emerald-600 hover:bg-emerald-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nuevo Usuario
+                  </Button>
                 </div>
-                <Button onClick={() => setShowForm(!showForm)} className="bg-emerald-600 hover:bg-emerald-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nuevo Usuario
-                </Button>
-              </div>
 
-              {showForm && (
+                {showForm && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Crear Nuevo Usuario</CardTitle>
+                      <CardDescription>Complete los datos del usuario administrativo</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="nombre">Nombre completo *</Label>
+                            <Input
+                              id="nombre"
+                              value={formData.nombre}
+                              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                              placeholder="Ej: Juan Pérez"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="correo">Correo electrónico *</Label>
+                            <Input
+                              id="correo"
+                              type="email"
+                              value={formData.correo}
+                              onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                              placeholder="usuario@ejemplo.com"
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="telefono">Teléfono</Label>
+                            <Input
+                              id="telefono"
+                              value={formData.telefono}
+                              onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                              placeholder="+57 300 123 4567"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="rol">Rol *</Label>
+                            <Select
+                              value={formData.rol}
+                              onValueChange={(value: "admin" | "soporte") => setFormData({ ...formData, rol: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="admin">Administrador</SelectItem>
+                                <SelectItem value="soporte">Soporte</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="contraseña">Contraseña *</Label>
+                            <Input
+                              id="contraseña"
+                              type="password"
+                              value={formData.contraseña}
+                              onChange={(e) => setFormData({ ...formData, contraseña: e.target.value })}
+                              placeholder="Mínimo 8 caracteres"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
+                            Cancelar
+                          </Button>
+                          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={submitting}>
+                            Crear Usuario
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {error && <p className="text-sm text-red-600">{error}</p>}
+
                 <Card>
                   <CardHeader>
-                    <CardTitle>Crear Nuevo Usuario</CardTitle>
-                    <CardDescription>Complete los datos del usuario administrativo</CardDescription>
+                    <CardTitle>Lista de Usuarios</CardTitle>
+                    <CardDescription>Administre los usuarios con acceso a la plataforma</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="nombre">Nombre completo *</Label>
-                          <Input
-                            id="nombre"
-                            value={formData.nombre}
-                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                            placeholder="Ej: Juan Pérez"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="correo">Correo electrónico *</Label>
-                          <Input
-                            id="correo"
-                            type="email"
-                            value={formData.correo}
-                            onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                            placeholder="usuario@ejemplo.com"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="telefono">Teléfono</Label>
-                          <Input
-                            id="telefono"
-                            value={formData.telefono}
-                            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                            placeholder="+57 300 123 4567"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="rol">Rol *</Label>
-                          <Select
-                            value={formData.rol}
-                            onValueChange={(value: "admin" | "soporte") => setFormData({ ...formData, rol: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                              <SelectItem value="soporte">Soporte</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label htmlFor="contraseña">Contraseña *</Label>
-                          <Input
-                            id="contraseña"
-                            type="password"
-                            value={formData.contraseña}
-                            onChange={(e) => setFormData({ ...formData, contraseña: e.target.value })}
-                            placeholder="Mínimo 8 caracteres"
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2 justify-end">
-                        <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
-                          Cancelar
-                        </Button>
-                          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={submitting}>
-                          Crear Usuario
-                        </Button>
-                      </div>
-                    </form>
+                    <UsersTable data={users} loading={loading} />
                   </CardContent>
                 </Card>
-              )}
-
-              {error && <p className="text-sm text-red-600">{error}</p>}
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lista de Usuarios</CardTitle>
-                  <CardDescription>Administre los usuarios con acceso a la plataforma</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <UsersTable data={users} loading={loading} />
-                </CardContent>
-              </Card>
+              </div>
             </div>
           </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </SessionGuard>
   )
 }
