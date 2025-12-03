@@ -36,6 +36,18 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
   return rows
 }
 
+async function getAdminUserByIdInternal(id: number): Promise<(AdminUser & { contraseña: string }) | null> {
+  const { rows } = await query<AdminUser & { contraseña: string }>(
+    `select id, nombre, correo, telefono, rol, activo, ultimo_ingreso, fecha_creacion, contraseña
+       from admin_platform.admin_users
+      where id = $1
+      limit 1`,
+    [id],
+  )
+
+  return rows[0] ?? null
+}
+
 export async function createAdminUser(data: {
   nombre: string
   correo: string
@@ -55,6 +67,61 @@ export async function createAdminUser(data: {
   )
 
   return rows[0]
+}
+
+export async function updateAdminUser(
+  id: number,
+  data: {
+    nombre?: string
+    correo?: string
+    telefono?: string | null
+    rol?: "admin" | "soporte"
+    activo?: boolean
+    contraseña?: string
+  },
+): Promise<AdminUser> {
+  const existing = await getAdminUserByIdInternal(id)
+
+  if (!existing) {
+    throw new Error("Usuario no encontrado")
+  }
+
+  const hashedPassword = data.contraseña ? await bcrypt.hash(data.contraseña, 10) : existing.contraseña
+
+  const telefono = data.telefono !== undefined ? data.telefono : existing.telefono
+
+  const { rows } = await query<AdminUser>(
+    `update admin_platform.admin_users
+        set nombre = $2,
+            correo = $3,
+            telefono = $4,
+            rol = $5,
+            activo = $6,
+            contraseña = $7
+      where id = $1
+      returning id, nombre, correo, telefono, rol, activo, ultimo_ingreso, fecha_creacion`,
+    [
+      id,
+      data.nombre ?? existing.nombre,
+      data.correo ?? existing.correo,
+      telefono,
+      data.rol ?? existing.rol,
+      typeof data.activo === "boolean" ? data.activo : existing.activo,
+      hashedPassword,
+    ],
+  )
+
+  const updated = rows[0]
+
+  if (!updated) {
+    throw new Error("No se pudo actualizar el usuario")
+  }
+
+  return updated
+}
+
+export async function deleteAdminUser(id: number): Promise<void> {
+  await query(`delete from admin_platform.admin_users where id = $1`, [id])
 }
 
 export async function getTenants(): Promise<Tenant[]> {

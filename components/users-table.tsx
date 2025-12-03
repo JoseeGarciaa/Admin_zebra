@@ -38,101 +38,115 @@ export type User = {
   fecha_creacion: string | null
 }
 
-export const columns: ColumnDef<User>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-    cell: ({ row }) => <div className="font-medium">#{row.getValue("id")}</div>,
-  },
-  {
-    accessorKey: "nombre",
-    header: ({ column }) => {
-      return (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-          Nombre
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
-      )
+function createColumns(onEdit?: (user: User) => void, onDelete?: (user: User) => void): ColumnDef<User>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <div className="font-medium">#{row.getValue("id")}</div>,
     },
-    cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
-  },
-  {
-    accessorKey: "correo",
-    header: "Correo",
-    cell: ({ row }) => <div className="lowercase">{row.getValue("correo")}</div>,
-  },
-  {
-    accessorKey: "telefono",
-    header: "Teléfono",
-    cell: ({ row }) => row.getValue("telefono") ?? "—",
-  },
-  {
-    accessorKey: "rol",
-    header: "Rol",
-    cell: ({ row }) => {
-      const rol = row.getValue("rol") as string
-      return <Badge variant={rol === "admin" ? "default" : "secondary"}>{rol}</Badge>
+    {
+      accessorKey: "nombre",
+      header: ({ column }) => {
+        return (
+          <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
+            Nombre
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => <div className="font-medium">{row.getValue("nombre")}</div>,
     },
-  },
-  {
-    accessorKey: "activo",
-    header: "Estado",
-    cell: ({ row }) => {
-      const activo = row.getValue("activo") as boolean
-      return <Badge variant={activo ? "default" : "destructive"}>{activo ? "Activo" : "Inactivo"}</Badge>
+    {
+      accessorKey: "correo",
+      header: "Correo",
+      cell: ({ row }) => <div className="lowercase">{row.getValue("correo")}</div>,
     },
-  },
-  {
-    accessorKey: "fecha_creacion",
-    header: "Fecha Creación",
-    cell: ({ row }) => {
-      const value = row.getValue("fecha_creacion") as string | null
+    {
+      accessorKey: "telefono",
+      header: "Teléfono",
+      cell: ({ row }) => row.getValue("telefono") ?? "—",
+    },
+    {
+      accessorKey: "rol",
+      header: "Rol",
+      cell: ({ row }) => {
+        const rol = row.getValue("rol") as string
+        return <Badge variant={rol === "admin" ? "default" : "secondary"}>{rol}</Badge>
+      },
+    },
+    {
+      accessorKey: "activo",
+      header: "Estado",
+      cell: ({ row }) => {
+        const activo = row.getValue("activo") as boolean
+        return <Badge variant={activo ? "default" : "destructive"}>{activo ? "Activo" : "Inactivo"}</Badge>
+      },
+    },
+    {
+      accessorKey: "fecha_creacion",
+      header: "Fecha Creación",
+      cell: ({ row }) => {
+        const value = row.getValue("fecha_creacion") as string | null
 
-      if (!value) {
-        return <div>—</div>
-      }
+        if (!value) {
+          return <div>—</div>
+        }
 
-      const date = new Date(value)
-      return <div>{date.toLocaleDateString("es-ES")}</div>
+        const date = new Date(value)
+        return <div>{date.toLocaleDateString("es-ES")}</div>
+      },
     },
-  },
-  {
-    id: "actions",
-    cell: ({ row }) => {
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Abrir menú</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Pencil className="mr-2 h-4 w-4" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Abrir menú</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => {
+                  onEdit?.(row.original)
+                }}
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive"
+                onSelect={() => {
+                  onDelete?.(row.original)
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      },
     },
-  },
-]
+  ]
+}
 
 interface UsersTableProps {
   data: User[]
   loading?: boolean
+  onEdit?: (user: User) => void
+  onDelete?: (user: User) => void
 }
 
-export function UsersTable({ data, loading }: UsersTableProps) {
+export function UsersTable({ data, loading, onEdit, onDelete }: UsersTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const columns = React.useMemo(() => createColumns(onEdit, onDelete), [onEdit, onDelete])
 
   const table = useReactTable({
     data,
