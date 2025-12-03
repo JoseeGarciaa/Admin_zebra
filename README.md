@@ -57,6 +57,13 @@ El proyecto espera el esquema `admin_platform` con las tablas:
 
 Consulta el archivo `docs/schema.sql` (o las DDL proporcionadas) para crear las tablas si aún no existen.
 
+## Multitenencia
+
+- Ejecuta el script `docs/multitenant_functions.sql` en tu base de datos para registrar las funciones `admin_platform.crear_tenant`, `admin_platform.actualizar_tenant` y `admin_platform.eliminar_tenant` que se encargan de clonar el esquema `tenant_base`.
+- La API de creación de tenants ahora invoca `admin_platform.crear_tenant`, que además de generar el nuevo registro en `admin_platform.tenants` duplica el esquema base y crea un usuario administrador con contraseña *hash* dentro del esquema recién provisionado.
+- Asegúrate de que exista el esquema plantilla `tenant_base` con la estructura enviada (tablas, secuencias, triggers y la función `set_updated_at`).
+- La contraseña enviada desde el formulario se cifra con bcrypt en la aplicación antes de invocar la función almacenada; el hash resultante se reutiliza para el usuario administrador del tenant.
+
 ## Despliegue en Railway
 
 1. Crea un repositorio en GitHub y sube el proyecto (`.env.local` está ignorado por Git, usa `.env.example`).

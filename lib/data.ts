@@ -75,21 +75,25 @@ export async function createTenant(data: {
   contraseña: string
   estado?: boolean
 }): Promise<Tenant> {
+  const hashedPassword = await bcrypt.hash(data.contraseña, 10)
+
   const { rows } = await query<Tenant>(
-    `insert into admin_platform.tenants
-       (nombre, nit, email_contacto, telefono_contacto, direccion, contraseña, estado)
-     values ($1, $2, $3, $4, $5, $6, coalesce($7, true))
-     returning id, nombre, nit, email_contacto, telefono_contacto, direccion, estado, ultimo_ingreso, fecha_creacion`,
+    `select *
+       from admin_platform.crear_tenant($1, $2, $3, $4, $5, $6, $7)`,
     [
       data.nombre,
       data.nit ?? null,
       data.email_contacto,
       data.telefono_contacto ?? null,
       data.direccion ?? null,
-      data.contraseña,
+      hashedPassword,
       data.estado ?? true,
     ],
   )
+
+  if (!rows[0]) {
+    throw new Error("No se pudo crear el tenant")
+  }
 
   return rows[0]
 }
