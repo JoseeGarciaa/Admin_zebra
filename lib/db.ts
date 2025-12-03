@@ -1,24 +1,12 @@
 import { Pool, type QueryResult, type QueryResultRow } from "pg"
 
+import { getDatabaseConfig } from "./config"
+
 const globalForPool = globalThis as unknown as {
   pgPool?: Pool
 }
 
-const pool =
-  globalForPool.pgPool ??
-  new Pool({
-    host: process.env.POSTGRES_HOST,
-    port: Number(process.env.POSTGRES_PORT ?? "5432"),
-    database: process.env.POSTGRES_DB,
-    user: process.env.POSTGRES_USER,
-    password: process.env.POSTGRES_PASSWORD,
-    ssl:
-      process.env.POSTGRES_SSL === "true"
-        ? {
-            rejectUnauthorized: false,
-          }
-        : false,
-  })
+const pool = globalForPool.pgPool ?? new Pool(getDatabaseConfig())
 
 if (process.env.NODE_ENV !== "production") {
   globalForPool.pgPool = pool

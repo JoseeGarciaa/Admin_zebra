@@ -25,19 +25,21 @@ Panel administrativo construido con Next.js 15, Tailwind CSS y componentes reuti
    | `POSTGRES_PASSWORD` | Contraseña del usuario                           |
    | `POSTGRES_SSL`      | `true` si el proveedor requiere conexión SSL     |
 
-2. Instala dependencias:
+2. Ajusta `lib/config.ts` si deseas cambiar los valores por defecto; el proyecto trae credenciales de ejemplo para entornos donde no se puedan definir variables (no recomendado en producción).
+
+3. Instala dependencias:
 
    ```bash
    npm install
    ```
 
-3. Levanta el entorno de desarrollo:
+4. Levanta el entorno de desarrollo:
 
    ```bash
    npm run dev
    ```
 
-4. Abre `http://localhost:3000` y accede con un usuario existente en la tabla `admin_platform.admin_users`.
+5. Abre `http://localhost:3000` y accede con un usuario existente en la tabla `admin_platform.admin_users`.
 
 ## Scripts disponibles
 
